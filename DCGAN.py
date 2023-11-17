@@ -103,17 +103,17 @@ class DCGAN(keras.Model):
         fake_label = np.zeros((batch_size, 1))
 
         with tf.GradientTape() as gen_tape:
-            generated_imgs = self.generator(noise)
+            generated_imgs = self.generator(noise, training=True)
 
             with tf.GradientTape() as disc_tape:
-                Dx = self.discriminator(img_batch)
-                DGz1 = self.discriminator(generated_imgs)
+                Dx = self.discriminator(img_batch, training=True)
+                DGz1 = self.discriminator(generated_imgs, training=True)
                 disc_loss = self.loss_fn(real_label, Dx) + self.loss_fn(fake_label, DGz1)
 
             disc_gradients = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
             self.disc_optimizer.apply_gradients(zip(disc_gradients, self.discriminator.trainable_variables))
 
-            DGz2 = self.discriminator(generated_imgs)
+            DGz2 = self.discriminator(generated_imgs, training=True)
             gen_loss = self.loss_fn(real_label, DGz2)
 
         gen_gradients = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
@@ -135,7 +135,7 @@ class DCGAN(keras.Model):
                     print(f'epoch {epoch+INITIAL_EPOCH}/{n_epoch+INITIAL_EPOCH} \t batch {i+1}/{len(dataset)} \t loss_g {gen_loss:.4f} \t loss_d {disc_loss:.4f} \t Dx {Dx:.4f} \t DGz1 {DGz1:.4f} \t DGz2 {DGz2:.4f}')
                     
                     # save image
-                    generated_imgs = self.generator(fixed_noise)
+                    generated_imgs = self.generator(fixed_noise, training=False)
                     generated_imgs = (generated_imgs + 1) * 127.5 # convert back to [0, 255]
 
                     plt.figure(figsize=(10, 10))
@@ -163,7 +163,7 @@ class DCGAN(keras.Model):
 
     def generate_image_and_save(self, filename):
         noise = tf.random.normal([1, 1, 1, LATENT_DIM])
-        generated_img = self.generator(noise)[0]
+        generated_img = self.generator(noise, training=False)[0]
         generated_img = (generated_img + 1) * 127.5 # convert back to [0, 255]
         keras.utils.save_img(filename, generated_img, data_format='channels_last')
 
