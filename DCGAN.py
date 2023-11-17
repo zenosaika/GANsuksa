@@ -1,3 +1,5 @@
+# Paper: https://arxiv.org/abs/1511.06434v2
+
 import os
 import pickle
 import numpy as np
@@ -20,9 +22,9 @@ LOSS_D = []
 FIXED_NOISE = tf.random.normal([36, 1, 1, LATENT_DIM])
 
 THIS_DIR = os.path.dirname(__file__)
-OUTPUT_DIR = os.path.join(THIS_DIR, 'output/')
-CHECKPOINT_DIR = os.path.join(THIS_DIR, 'checkpoint/')
-STATE_FILE_PATH = os.path.join(THIS_DIR, 'state_file')
+OUTPUT_DIR = os.path.join(THIS_DIR, 'DCGAN', 'output/')
+CHECKPOINT_DIR = os.path.join(THIS_DIR, 'DCGAN', 'checkpoint/')
+STATE_FILE_PATH = os.path.join(THIS_DIR, 'DCGAN', 'state_file')
 
 
 class Generator(keras.Model):
@@ -88,7 +90,7 @@ class DCGAN(keras.Model):
         self.discriminator = discriminator
 
     def compile(self, loss_fn, gen_optimizer, disc_optimizer):
-        self.loss_fn =loss_fn
+        self.loss_fn = loss_fn
         self.gen_optimizer = gen_optimizer
         self.disc_optimizer = disc_optimizer
 
@@ -130,7 +132,7 @@ class DCGAN(keras.Model):
                     Dx = tf.reduce_mean(Dx)
                     DGz1 = tf.reduce_mean(DGz1)
                     DGz2 = tf.reduce_mean(DGz2)
-                    print(f'epoch {epoch+INITIAL_EPOCH}/{n_epoch+INITIAL_EPOCH} \t batch {i}/{len(dataset)} \t loss_g {gen_loss:.4f} \t loss_d {disc_loss:.4f} \t Dx {Dx:.4f} \t DGz1 {DGz1:.4f} \t DGz2 {DGz2:.4f}')
+                    print(f'epoch {epoch+INITIAL_EPOCH}/{n_epoch+INITIAL_EPOCH} \t batch {i+1}/{len(dataset)} \t loss_g {gen_loss:.4f} \t loss_d {disc_loss:.4f} \t Dx {Dx:.4f} \t DGz1 {DGz1:.4f} \t DGz2 {DGz2:.4f}')
                     
                     # save image
                     generated_imgs = self.generator(fixed_noise)
@@ -143,7 +145,8 @@ class DCGAN(keras.Model):
                         plt.yticks([])
                         plt.grid(False)
                         plt.imshow(generated_imgs[a].numpy().astype(np.uint8))
-                    plt.savefig(OUTPUT_DIR + f'epoch{epoch+INITIAL_EPOCH}batch{i}.png', bbox_inches='tight')
+                    plt.savefig(OUTPUT_DIR + f'epoch{epoch+INITIAL_EPOCH}batch{i+1}.png', bbox_inches='tight')
+                    plt.close('all')
 
             # save weight
             self.save_weights(CHECKPOINT_DIR + f'dcgan_epoch{epoch+INITIAL_EPOCH}')
@@ -162,7 +165,7 @@ class DCGAN(keras.Model):
         noise = tf.random.normal([1, 1, 1, LATENT_DIM])
         generated_img = self.generator(noise)[0]
         generated_img = (generated_img + 1) * 127.5 # convert back to [0, 255]
-        keras.utils.save_img(os.path.join(THIS_DIR, filename), generated_img, data_format='channels_last')
+        keras.utils.save_img(filename, generated_img, data_format='channels_last')
 
 
 if __name__ == '__main__':
@@ -173,7 +176,7 @@ if __name__ == '__main__':
         state_file = open(STATE_FILE_PATH, 'rb')
         state = pickle.load(state_file)
         if 'LATEST_EPOCH' in state:
-            INITIAL_EPOCH = state['LATEST_EPOCH'] + 1
+            INITIAL_EPOCH = state['LATEST_EPOCH']
         if 'LOSS_G' in state:
             LOSS_G = state['LOSS_G']
         if 'LOSS_D' in state:
@@ -198,7 +201,7 @@ if __name__ == '__main__':
     # load dataset & normalize to [-1, 1]
     print('load dataset...')
     dataset = keras.utils.image_dataset_from_directory(
-        directory='./datasets/waifu',
+        directory='datasets/waifu',
         image_size=(IMG_HEIGHT, IMG_WIDTH),
         batch_size=BATCH_SIZE
     ).map(lambda imgs, _ : tf.cast(imgs, tf.float32) / 127.5 - 1)
